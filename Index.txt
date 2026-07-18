@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Schlammhöhen-Messapp (ml)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            min-height: 100vh;
+            padding: 16px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e40af;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e40af;
+            margin-bottom: 16px;
+        }
+        
+        h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 12px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            width: 100%;
+            margin: 8px 0;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .input-group {
+            margin-bottom: 16px;
+        }
+        
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+        
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 16px;
+            background: white;
+        }
+        
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .flex {
+            display: flex;
+        }
+        
+        .flex-wrap {
+            flex-wrap: wrap;
+        }
+        
+        .gap-2 {
+            gap: 8px;
+        }
+        
+        .gap-4 {
+            gap: 16px;
+        }
+        
+        .justify-between {
+            justify-content: space-between;
+        }
+        
+        .justify-center {
+            justify-content: center;
+        }
+        
+        .items-center {
+            align-items: center;
+        }
+        
+        .camera-container {
+            position: relative;
+            background: black;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        
+        .camera-container video {
+            width: 100%;
+            display: block;
+        }
+        
+        .camera-container canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+        
+        .cylinder-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .cylinder-card {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        
+        .cylinder-card .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e40af;
+        }
+        
+        .cylinder-card .label {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+        
+        table th,
+        table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        table th {
+            background: #f3f4f6;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        table tr:hover {
+            background: #f9fafb;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+        
+        .stat-card {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        
+        .stat-card .stat-label {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+        
+        .stat-card .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e40af;
+        }
+        
+        .slider-container {
+            margin: 16px 0;
+        }
+        
+        .slider-container label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .slider-container input[type="range"] {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #e5e7eb;
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #3b82f6;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .success-message {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+        
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .text-sm {
+            font-size: 14px;
+        }
+        
+        .text-gray-500 {
+            color: #6b7280;
+        }
+        
+        .text-gray-600 {
+            color: #4b5563;
+        }
+        
+        .font-mono {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+        }
+        
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .5;
+            }
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Startseite -->
+        <div id="home-page" class="page">
+            <div class="card">
+                <h1>🔬 Schlammhöhen-Messapp (ml)</h1>
+                <p class="text-center text-gray-600 mb-4">
+                    Automatische Erkennung der Schlammhöhe in ml auf deinen Messzylindern.
+                </p>
+                
+                <div class="input-group">
+                    <label>Messdauer (Minuten)</label>
+                    <input type="number" id="duration" value="5" min="1" max="30" placeholder="5">
+                </div>
+                
+                <div class="input-group">
+                    <label>Anzahl Zylinder (1-3)</label>
+                    <input type="number" id="cylinderCount" value="3" min="1" max="3" placeholder="3">
+                </div>
+                
+                <div id="cylinder-names" class="input-group">
+                    <label>Zylinder-Namen</label>
+                    <div id="name-inputs">
+                        <input type="text" class="cylinder-name" value="Zylinder 1" placeholder="Name">
+                        <input type="text" class="cylinder-name" value="Zylinder 2" placeholder="Name">
+                        <input type="text" class="cylinder-name" value="Zylinder 3" placeholder="Name">
+                    </div>
+                </div>
+                
+                <button class="btn btn-primary" onclick="startCalibration()">
+                    Kamera starten & Kalibrieren
+                </button>
+            </div>
+            
+            <div class="card">
+                <h3>📋 Kurzanleitung</h3>
+                <ol class="text-gray-600">
+                    <li>Kamera auf die Zylinder richten</li>
+                    <li>Rote Rahmen anpassen (falls nötig)</li>
+                    <li>ml-Markierungen kalibrieren</li>
+                    <li>Messung starten – fertig!</li>
+                </ol>
+                <p class="text-sm text-gray-500 mt-2">
+                    💡 Tipp: Nutze die Rückkamera für bessere Qualität!
+                </p>
+            </div>
+        </div>
+        
+        <!-- Kalibrierungsseite -->
+        <div id="calibrate-page" class="page hidden">
+            <div class="card">
+                <div class="flex justify-between items-center mb-4">
+                    <h2>🎯 Kalibrierung</h2>
+                    <button class="btn btn-secondary" onclick="showPage('home-page')" style="width: auto; padding: 8px 16px;">
+                        Zurück
+                    </button>
+                </div>
+                
+                <div class="input-group">
+                    <label>Kamera auswählen</label>
+                    <select id="camera-select" class="camera-select">
+                        <option value="">Standard-Kamera</option>
+                    </select>
+                </div>
+                
+                <div class="camera-container" id="camera-container">
+                    <video id="video" autoplay playsinline muted></video>
+                    <canvas id="overlay-canvas"></canvas>
+                    <div id="detection-status" class="hidden"></div>
+                </div>
+                
+                <div class="flex gap-2 mb-4">
+                    <button class="btn btn-secondary" onclick="resetCylinderFrames()">
+                        Zylinder zurücksetzen
+                    </button>
+                    <button class="btn btn-secondary" onclick="toggleMarkings()" id="toggle-markings-btn">
+                        Markierungen einblenden
+                    </button>
+                </div>
+                
+                <div class="card">
+                    <h3>🤖 Automatische Markierungserkennung</h3>
+                    <p class="text-sm text-gray-600 mb-3">
+                        Die App versucht, die ml-Markierungen automatisch zu erkennen.
+                    </p>
+                    <button class="btn btn-primary" onclick="autoDetectMarkings()">
+                        Markierungen automatisch erkennen
+                    </button>
+                </div>
+                
+                <div class="card">
+                    <h3>👆 Manuelle Kalibrierung</h3>
+                    <p class="text-sm text-gray-600 mb-3">
+                        Gib die ml-Werte für die oberste und unterste Markierung ein.
+                    </p>
+                    <div id="calibration-inputs">
+                        <!-- Wird dynamisch gefüllt -->
+                    </div>
+                </div>
+                
+                <div class="slider-container">
+                    <label>
+                        <span>Erkennungsschwelle</span>
+                        <span id="threshold-value">60</span>
+                    </label>
+                    <input type="range" id="detection-threshold" min="10" max="100" value="60" 
+                           oninput="updateThreshold(this.value)">
+                </div>
+                
+                <button class="btn btn-success" onclick="startMeasurement()" id="start-measurement-btn" disabled>
+                    Messung starten
+                </button>
+                <button class="btn btn-danger" onclick="stopCamera()">
+                    Kamera stoppen
+                </button>
+                
+                <div class="card mt-4">
+                    <h3>📊 Aktuelle ml-Werte (Test)</h3>
+                    <div class="cylinder-info" id="current-ml-values">
+                        <!-- Wird dynamisch gefüllt -->
+                    </div>
+                    <button class="btn btn-secondary mt-2" onclick="testDetection()">
+                        Test-Messung
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Messseite -->
+        <div id="measure-page" class="page hidden">
+            <div class="card">
+                <div class="flex justify-between items-center mb-4">
+                    <h2>⏱️ Messung läuft</h2>
+                    <div class="font-mono" id="current-time">0/5 min</div>
+                </div>
+                
+                <div class="camera-container" id="measure-camera-container">
+                    <video id="measure-video" autoplay playsinline muted></video>
+                    <canvas id="measure-canvas"></canvas>
+                </div>
+                
+                <div class="cylinder-info" id="measure-ml-values">
+                    <!-- Wird dynamisch gefüllt -->
+                </div>
+                
+                <button class="btn btn-primary" onclick="takeManualMeasurement()">
+                    Manuelle Messung
+                </button>
+                <button class="btn btn-danger" onclick="stopMeasurement()">
+                    Messung abbrechen
+                </button>
+                
+                <div class="card mt-4">
+                    <h3>📋 Letzte Messungen</h3>
+                    <div id="measurement-table-container">
+                        <table id="measurement-table">
+                            <thead>
+                                <tr>
+                                    <th>Zeit (min)</th>
+                                    <th id="th-cyl1">Zylinder 1</th>
+                                    <th id="th-cyl2">Zylinder 2</th>
+                                    <th id="th-cyl3">Zylinder 3</th>
+                                </tr>
+                            </thead>
+                            <tbody id="measurement-rows">
+                                <!-- Wird dynamisch gefüllt -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Ergebnis-Seite -->
+        <div id="results-page" class="page hidden">
+            <div class="card">
+                <div class="flex justify-between items-center mb-4">
+                    <h2>✅ Messung abgeschlossen</h2>
+                    <button class="btn btn-secondary" onclick="showPage('home-page')" style="width: auto; padding: 8px 16px;">
+                        Neue Messung
+                    </button>
+                </div>
+                
+                <div class="stats-grid" id="stats-grid">
+                    <!-- Wird dynamisch gefüllt -->
+                </div>
+                
+                <div class="card">
+                    <h3>📊 Alle Messdaten (ml)</h3>
+                    <div id="results-table-container">
+                        <table id="results-table">
+                            <thead>
+                                <tr>
+                                    <th>Zeit (min)</th>
+                                    <th id="th-result1">Zylinder 1</th>
+                                    <th id="th-result2">Zylinder 2</th>
+                                    <th id="th-result3">Zylinder 3</th>
+                                    <th>Uhrzeit</th>
+                                </tr>
+                            </thead>
+                            <tbody id="results-rows">
+                                <!-- Wird dynamisch gefüllt -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="flex gap-4 flex-wrap">
+                    <button class="btn btn-primary" onclick="exportCSV()">
+                        📄 Als CSV exportieren
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportPDF()">
+                        🖨️ Als PDF drucken
+                    </button>
+                    <button class="btn btn-secondary" onclick="showPage('home-page')">
+                        🏠 Zurück zur Startseite
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== GLOBAL VARIABLES ==========
+        let stream = null;
+        let videoElement = null;
+        let canvasElement = null;
+        let overlayCanvas = null;
+        let overlayCtx = null;
+        let cylinderRects = [];
+        let calibrationData = [];
+        let cylinderLabels = ['Zylinder 1', 'Zylinder 2', 'Zylinder 3'];
+        let measurements = [];
+        let duration = 5;
+        let currentTime = 0;
+        let isRunning = false;
+        let timerId = null;
+        let detectionThreshold = 60;
+        let showMarkings = false;
+        let selectedCylinderIndex = 0;
+
+        // ========== INITIALIZATION ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize cylinder names
+            updateCylinderNames();
+            
+            // Load available cameras
+            loadCameras();
+            
+            // Set up event listeners
+            document.getElementById('cylinderCount').addEventListener('change', function() {
+                updateCylinderCount(parseInt(this.value));
+            });
+        });
+
+        // ========== PAGE NAVIGATION ==========
+        function showPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.add('hidden');
+            });
+            
+            // Show selected page
+            document.getElementById(pageId).classList.remove('hidden');
+            
+            // Stop camera when leaving calibrate/measure pages
+            if (pageId !== 'calibrate-page' && pageId !== 'measure-page') {
+                stopCamera();
+            }
+        }
+
+        // ========== CYLINDER CONFIGURATION ==========
+        function updateCylinderCount(count) {
+            count = Math.min(Math.max(count, 1), 3);
+            
+            // Update input value
+            document.getElementById('cylinderCount').value = count;
+            
+            // Update cylinder labels
+            const newLabels = [];
+            for (let i = 0; i < count; i++) {
+                newLabels.push(`Zylinder ${i + 1}`);
+            }
+            cylinderLabels = newLabels;
+            
+            // Update name inputs
+            const nameInputsContainer = document.getElementById('name-inputs');
+            nameInputsContainer.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'cylinder-name';
+                input.value = cylinderLabels[i];
+                input.placeholder = 'Name';
+                input.addEventListener('change', function() {
+                    cylinderLabels[i] = this.value;
+                });
+                nameInputsContainer.appendChild(input);
+            }
+            
+            // Update calibration data
+            calibrationData = [];
+            for (let i = 0; i < count; i++) {
+                calibrationData.push({ top: null, bottom: null });
+            }
+            
+            // Update cylinder rects
+            if (videoElement && videoElement.videoWidth > 0) {
+                cylinderRects = generateCylinderGrid(videoElement.videoWidth, videoElement.videoHeight, count);
+            }
+            
+            // Update calibration inputs
+            updateCalibrationInputs();
+            
+            // Update measurement tables
+            updateTableHeaders();
+        }
+
+        function updateCylinderNames() {
+            const count = parseInt(document.getElementById('cylinderCount').value) || 3;
+            updateCylinderCount(count);
+        }
+
+        // ========== CAMERA FUNCTIONS ==========
+        async function startCamera(cameraId = null) {
+            try {
+                // Stop existing stream
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+                
+                const constraints = {
+                    video: {
+                        deviceId: cameraId ? { exact: cameraId } : undefined,
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'environment'
+                    },
+                    audio: false
+                };
+                
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoElement = document.getElementById('video');
+                videoElement.srcObject = stream;
+                
+                // Wait for video to load
+                videoElement.onloadedmetadata = function() {
+                    const count = parseInt(document.getElementById('cylinderCount').value) || 3;
+                    cylinderRects = generateCylinderGrid(videoElement.videoWidth, videoElement.videoHeight, count);
+                    calibrationData = [];
+                    for (let i = 0; i < count; i++) {
+                        calibrationData.push({ top: null, bottom: null });
+                    }
+                    updateCalibrationInputs();
+                    drawOverlay();
+                };
+                
+                return true;
+            } catch (error) {
+                console.error('Camera error:', error);
+                alert('Kamera-Zugriff fehlgeschlagen. Bitte erlauben Sie den Kamera-Zugriff in den iPhone-Einstellungen für Safari.');
+                return false;
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            if (videoElement) {
+                videoElement.srcObject = null;
+            }
+            if (timerId) {
+                clearInterval(timerId);
+                timerId = null;
+            }
+            isRunning = false;
+        }
+
+        async function loadCameras() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                const cameraSelect = document.getElementById('camera-select');
+                
+                cameraSelect.innerHTML = '';
+                videoDevices.forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `Kamera ${videoDevices.indexOf(device) + 1}`;
+                    cameraSelect.appendChild(option);
+                });
+                
+                // Add default option
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.text = 'Standard-Kamera';
+                cameraSelect.insertBefore(defaultOption, cameraSelect.firstChild);
+                
+                cameraSelect.addEventListener('change', async function() {
+                    await startCamera(this.value);
+                });
+            } catch (error) {
+                console.error('Error loading cameras:', error);
+            }
+        }
+
+        // ========== CYLINDER FRAMES ==========
+        function generateCylinderGrid(videoWidth, videoHeight, count) {
+            const padding = 15;
+            const availableWidth = videoWidth - padding * 2;
+            const cylinderWidth = availableWidth / count;
+            const cylinderHeight = videoHeight - padding * 2;
+            
+            return Array.from({ length: count }, (_, i) => ({
+                x: padding + i * cylinderWidth,
+                y: padding,
+                width: cylinderWidth - 5,
+                height: cylinderHeight - 5,
+                label: cylinderLabels[i] || `Zylinder ${i + 1}`
+            }));
+        }
+
+        function resetCylinderFrames() {
+            if (videoElement && videoElement.videoWidth > 0) {
+                const count = cylinderRects.length;
+                cylinderRects = generateCylinderGrid(videoElement.videoWidth, videoElement.videoHeight, count);
+                drawOverlay();
+            }
+        }
+
+        // ========== DRAWING FUNCTIONS ==========
+        function drawOverlay() {
+            if (!videoElement || !videoElement.videoWidth) return;
+            
+            const overlay = document.getElementById('overlay-canvas');
+            if (!overlay) return;
+            
+            overlay.width = videoElement.videoWidth;
+            overlay.height = videoElement.videoHeight;
+            overlayCtx = overlay.getContext('2d');
+            overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+            
+            // Draw cylinder frames
+            cylinderRects.forEach((rect, index) => {
+                // Frame
+                overlayCtx.strokeStyle = '#ef4444';
+                overlayCtx.lineWidth = 2;
+                overlayCtx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+                
+                // Label
+                overlayCtx.fillStyle = '#ffffff';
+                overlayCtx.font = '16px Arial';
+                const label = `${rect.label}: ${detectedML[index]?.toFixed(0) || '0'} ml`;
+                const textWidth = overlayCtx.measureText(label).width;
+                overlayCtx.fillRect(rect.x, rect.y - 20, textWidth + 10, 20);
+                overlayCtx.fillStyle = '#000000';
+                overlayCtx.fillText(label, rect.x + 5, rect.y - 5);
+                
+                // Fill level line (if calibrated)
+                if (calibrationData[index]?.top && calibrationData[index]?.bottom && detectedML[index] > 0) {
+                    const { top, bottom, topML, bottomML } = calibrationData[index];
+                    const totalRange = bottomML - topML;
+                    const mlFromTop = detectedML[index] - topML;
+                    const ratio = mlFromTop / totalRange;
+                    const fillY = top.y + ratio * (bottom.y - top.y);
+                    
+                    overlayCtx.strokeStyle = '#10b981';
+                    overlayCtx.lineWidth = 3;
+                    overlayCtx.beginPath();
+                    overlayCtx.moveTo(rect.x, fillY);
+                    overlayCtx.lineTo(rect.x + rect.width, fillY);
+                    overlayCtx.stroke();
+                    
+                    // Fill area
+                    overlayCtx.fillStyle = 'rgba(16, 185, 129, 0.3)';
+                    overlayCtx.fillRect(rect.x, fillY, rect.width, bottom.y - fillY);
+                }
+                
+                // Resize handle
+                overlayCtx.fillStyle = '#ef4444';
+                overlayCtx.fillRect(rect.x + rect.width - 10, rect.y + rect.height - 10, 10, 10);
+            });
+            
+            // Draw calibration markings
+            if (showMarkings) {
+                calibrationData.forEach((cal, index) => {
+                    if (cal.top) {
+                        overlayCtx.fillStyle = '#3b82f6';
+                        overlayCtx.beginPath();
+                        overlayCtx.arc(cal.top.x, cal.top.y, 5, 0, Math.PI * 2);
+                        overlayCtx.fill();
+                        overlayCtx.fillStyle = '#ffffff';
+                        overlayCtx.font = '12px Arial';
+                        overlayCtx.fillText(`${cal.top.ml} ml`, cal.top.x + 8, cal.top.y - 5);
+                    }
+                    if (cal.bottom) {
+                        overlayCtx.fillStyle = '#3b82f6';
+                        overlayCtx.beginPath();
+                        overlayCtx.arc(cal.bottom.x, cal.bottom.y, 5, 0, Math.PI * 2);
+                        overlayCtx.fill();
+                        overlayCtx.fillStyle = '#ffffff';
+                        overlayCtx.font = '12px Arial';
+                        overlayCtx.fillText(`${cal.bottom.ml} ml`, cal.bottom.x + 8, cal.bottom.y + 15);
+                    }
+                });
+            }
+            
+            requestAnimationFrame(drawOverlay);
+        }
+
+        // ========== IMAGE PROCESSING ==========
+        function detectHorizontalLines(imageData, rect, threshold = 60) {
+            const { data, width, height } = imageData;
+            const { x, y, width: rectW, height: rectH } = rect;
+            const lines = [];
+            
+            for (let row = y + 5; row < y + rectH - 5; row++) {
+                let lineStart = -1;
+                let lineEnd = -1;
+                let inLine = false;
+                
+                for (let col = x; col < x + rectW; col++) {
+                    const index = (row * width + col) * 4;
+                    if (index + 3 >= data.length) continue;
+                    
+                    const r = data[index];
+                    const g = data[index + 1];
+                    const b = data[index + 2];
+                    const brightness = (r + g + b) / 3;
+                    
+                    const isDark = brightness < threshold;
+                    
+                    if (isDark && !inLine) {
+                        lineStart = col;
+                        inLine = true;
+                    } else if (!isDark && inLine) {
+                        lineEnd = col - 1;
+                        inLine = false;
+                        
+                        if (lineEnd - lineStart >= 15) {
+                            lines.push({
+                                y: row,
+                                x: lineStart,
+                                length: lineEnd - lineStart,
+                                brightness: brightness
+                            });
+                        }
+                    }
+                }
+                
+                if (inLine && lineStart !== -1) {
+                    lines.push({
+                        y: row,
+                        x: lineStart,
+                        length: rectW - (lineStart - x),
+                        brightness: brightness
+                    });
+                }
+            }
+            
+            lines.sort((a, b) => a.y - b.y);
+            
+            const filteredLines = [];
+            for (let i = 0; i < lines.length; i++) {
+                if (i === 0 || lines[i].y - lines[i-1].y > 8) {
+                    filteredLines.push(lines[i]);
+                }
+            }
+            
+            return filteredLines;
+        }
+
+        function detectSludgeLevelML(imageData, cylinderRects, calibrationData) {
+            const results = [];
+            
+            for (let i = 0; i < cylinderRects.length; i++) {
+                const rect = cylinderRects[i];
+                const calibration = calibrationData[i];
+                
+                if (!calibration || !calibration.top || !calibration.bottom) {
+                    // Without calibration, estimate based on image
+                    const lines = detectHorizontalLines(
+                        { data: imageData.data, width: imageData.width, height: imageData.height },
+                        rect,
+                        detectionThreshold
+                    );
+                    
+                    if (lines.length > 0) {
+                        const sludgeY = lines[lines.length - 1].y;
+                        const heightPercent = (sludgeY - rect.y) / rect.height;
+                        results.push(100 - heightPercent * 100);
+                    } else {
+                        results.push(0);
+                    }
+                } else {
+                    // With calibration
+                    const { top, bottom, topML, bottomML } = calibration;
+                    let sludgeY = rect.y + rect.height;
+                    
+                    for (let row = top.y; row < bottom.y; row++) {
+                        let isWater = false;
+                        let isSludge = false;
+                        
+                        for (let col = rect.x; col < rect.x + rect.width; col += Math.max(1, Math.floor(rect.width / 5))) {
+                            const index = (row * imageData.width + col) * 4;
+                            if (index + 3 >= imageData.data.length) continue;
+                            
+                            const r = imageData.data[index];
+                            const g = imageData.data[index + 1];
+                            const b = imageData.data[index + 2];
+                            const brightness = (r + g + b) / 3;
+                            
+                            if (brightness < 80) {
+                                isSludge = true;
+                            } else {
+                                isWater = true;
+                            }
+                        }
+                        
+                        if (isWater && isSludge) {
+                            sludgeY = row;
+                            break;
+                        }
+                    }
+                    
+                    const totalHeight = bottom.y - top.y;
+                    const heightFromTop = sludgeY - top.y;
+                    const ratio = heightFromTop / totalHeight;
+                    const mlValue = topML + (bottomML - topML) * ratio;
+                    
+                    results.push(mlValue);
+                }
+            }
+            
+            return results;
+        }
+
+        // ========== DETECTION FUNCTIONS ==========
+        let detectedML = [0, 0, 0];
+        
+        function updateThreshold(value) {
+            detectionThreshold = parseInt(value);
+            document.getElementById('threshold-value').textContent = value;
+        }
+
+        function toggleMarkings() {
+            showMarkings = !showMarkings;
+            document.getElementById('toggle-markings-btn').textContent = 
+                showMarkings ? 'Markierungen ausblenden' : 'Markierungen einblenden';
+        }
+
+        function testDetection() {
+            if (!videoElement || !videoElement.videoWidth) {
+                alert('Bitte starte zuerst die Kamera.');
+                return;
+            }
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            detectedML = detectSludgeLevelML(imageData, cylinderRects, calibrationData);
+            
+            updateCurrentMLValues();
+            drawOverlay();
+        }
+
+        function autoDetectMarkings() {
+            if (!videoElement || !videoElement.videoWidth) {
+                alert('Bitte starte zuerst die Kamera.');
+                return;
+            }
+            
+            const rect = cylinderRects[selectedCylinderIndex];
+            const canvas = document.createElement('canvas');
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            
+            const imageData = ctx.getImageData(rect.x, rect.y, rect.width, rect.height);
+            const lines = detectHorizontalLines(
+                { data: imageData.data, width: rect.width, height: rect.height },
+                { x: 0, y: 0, width: rect.width, height: rect.height },
+                detectionThreshold
+            );
+            
+            if (lines.length >= 2) {
+                const topLine = lines[0];
+                const bottomLine = lines[lines.length - 1];
+                
+                const topML = prompt(`Oberste Markierung (Y=${topLine.y}): Welcher ml-Wert?`, "100");
+                if (topML === null) return;
+                
+                const bottomML = prompt(`Unterste Markierung (Y=${bottomLine.y}): Welcher ml-Wert?`, "0");
+                if (bottomML === null) return;
+                
+                setCalibrationPoint(
+                    selectedCylinderIndex,
+                    'top',
+                    rect.x + rect.width / 2,
+                    rect.y + topLine.y,
+                    parseFloat(topML)
+                );
+                setCalibrationPoint(
+                    selectedCylinderIndex,
+                    'bottom',
+                    rect.x + rect.width / 2,
+                    rect.y + bottomLine.y,
+                    parseFloat(bottomML)
+                );
+                
+                updateCalibrationInputs();
+                checkAllCalibrated();
+            } else {
+                alert('Nicht genug Markierungen erkannt. Versuche es mit manueller Kalibrierung oder passe den Schwellenwert an.');
+            }
+        }
+
+        function setCalibrationPoint(index, pointType, x, y, mlValue) {
+            calibrationData[index][pointType] = { x, y, ml: mlValue };
+            updateCalibrationInputs();
+            checkAllCalibrated();
+        }
+
+        function updateCalibrationInputs() {
+            const container = document.getElementById('calibration-inputs');
+            container.innerHTML = '';
+            
+            cylinderRects.forEach((rect, index) => {
+                const cylinderDiv = document.createElement('div');
+                cylinderDiv.className = 'mb-3';
+                
+                const title = document.createElement('h4');
+                title.className = 'font-medium mb-2';
+                title.textContent = rect.label;
+                cylinderDiv.appendChild(title);
+                
+                const topDiv = document.createElement('div');
+                topDiv.className = 'mb-2';
+                topDiv.innerHTML = `
+                    <label class="text-sm text-gray-600">Oberste Markierung (ml)</label>
+                    <input type="number" class="calibration-top" data-index="${index}" 
+                           value="${calibrationData[index]?.top?.ml || ''}" 
+                           placeholder="z.B. 100" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">
+                `;
+                cylinderDiv.appendChild(topDiv);
+                
+                const bottomDiv = document.createElement('div');
+                bottomDiv.className = 'mb-2';
+                bottomDiv.innerHTML = `
+                    <label class="text-sm text-gray-600">Unterste Markierung (ml)</label>
+                    <input type="number" class="calibration-bottom" data-index="${index}" 
+                           value="${calibrationData[index]?.bottom?.ml || ''}" 
+                           placeholder="z.B. 0" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">
+                `;
+                cylinderDiv.appendChild(bottomDiv);
+                
+                const setButton = document.createElement('button');
+                setButton.className = 'btn btn-success';
+                setButton.textContent = 'Positionen automatisch setzen';
+                setButton.style.width = '100%';
+                setButton.style.marginTop = '8px';
+                setButton.onclick = function() {
+                    const topML = parseFloat(topDiv.querySelector('input').value) || 100;
+                    const bottomML = parseFloat(bottomDiv.querySelector('input').value) || 0;
+                    
+                    if (!topML || !bottomML) {
+                        alert('Bitte gib beide ml-Werte ein.');
+                        return;
+                    }
+                    
+                    setCalibrationPoint(
+                        index,
+                        'top',
+                        rect.x + rect.width / 2,
+                        rect.y + 20,
+                        topML
+                    );
+                    setCalibrationPoint(
+                        index,
+                        'bottom',
+                        rect.x + rect.width / 2,
+                        rect.y + rect.height - 20,
+                        bottomML
+                    );
+                };
+                cylinderDiv.appendChild(setButton);
+                
+                // Add success message if calibrated
+                if (calibrationData[index]?.top && calibrationData[index]?.bottom) {
+                    const successDiv = document.createElement('div');
+                    successDiv.className = 'success-message';
+                    successDiv.textContent = `✅ Kalibriert: ${calibrationData[index].top.ml} ml – ${calibrationData[index].bottom.ml} ml`;
+                    cylinderDiv.appendChild(successDiv);
+                }
+                
+                container.appendChild(cylinderDiv);
+            });
+            
+            // Add event listeners
+            document.querySelectorAll('.calibration-top').forEach(input => {
+                input.addEventListener('change', function() {
+                    const index = parseInt(this.getAttribute('data-index'));
+                    calibrationData[index].top = { ...calibrationData[index].top, ml: parseFloat(this.value) };
+                });
+            });
+            
+            document.querySelectorAll('.calibration-bottom').forEach(input => {
+                input.addEventListener('change', function() {
+                    const index = parseInt(this.getAttribute('data-index'));
+                    calibrationData[index].bottom = { ...calibrationData[index].bottom, ml: parseFloat(this.value) };
+                });
+            });
+        }
+
+        function checkAllCalibrated() {
+            const allCalibrated = calibrationData.every(cal => cal.top && cal.bottom);
+            document.getElementById('start-measurement-btn').disabled = !allCalibrated;
+        }
+
+        // ========== MEASUREMENT FUNCTIONS ==========
+        function startCalibration() {
+            duration = parseInt(document.getElementById('duration').value) || 5;
+            updateCylinderNames();
+            
+            startCamera().then(success => {
+                if (success) {
+                    showPage('calibrate-page');
+                    updateCalibrationInputs();
+                    checkAllCalibrated();
+                }
+            });
+        }
+
+        function startMeasurement() {
+            duration = parseInt(document.getElementById('duration').value) || 5;
+            currentTime = 0;
+            measurements = [];
+            isRunning = true;
+            
+            // Take first measurement
+            testDetection();
+            addMeasurement(detectedML);
+            
+            // Set up timer
+            timerId = setInterval(() => {
+                currentTime++;
+                testDetection();
+                addMeasurement(detectedML);
+                
+                document.getElementById('current-time').textContent = `${currentTime}/${duration} min`;
+                
+                if (currentTime >= duration) {
+                    stopMeasurement();
+                }
+            }, 60000);
+            
+            showPage('measure-page');
+            updateMeasureCamera();
+            updateCurrentMLValues();
+        }
+
+        function updateMeasureCamera() {
+            const measureVideo = document.getElementById('measure-video');
+            if (stream && measureVideo) {
+                measureVideo.srcObject = stream;
+            }
+        }
+
+        function addMeasurement(mlValues) {
+            measurements.push({
+                time: currentTime,
+                mlValues: [...mlValues],
+                timestamp: new Date().toISOString()
+            });
+            
+            updateMeasurementTable();
+        }
+
+        function stopMeasurement() {
+            stopCamera();
+            isRunning = false;
+            showPage('results-page');
+            updateResultsTable();
+            updateStatistics();
+        }
+
+        function takeManualMeasurement() {
+            testDetection();
+            addMeasurement(detectedML);
+        }
+
+        // ========== UI UPDATES ==========
+        function updateCurrentMLValues() {
+            const container = document.getElementById('current-ml-values');
+            container.innerHTML = '';
+            
+            cylinderRects.forEach((rect, index) => {
+                const card = document.createElement('div');
+                card.className = 'cylinder-card';
+                card.innerHTML = `
+                    <div class="value">${detectedML[index]?.toFixed(0) || '0'} ml</div>
+                    <div class="label">${rect.label}</div>
+                `;
+                container.appendChild(card);
+            });
+            
+            // Update measure page values
+            const measureContainer = document.getElementById('measure-ml-values');
+            measureContainer.innerHTML = '';
+            
+            cylinderRects.forEach((rect, index) => {
+                const card = document.createElement('div');
+                card.className = 'cylinder-card';
+                card.innerHTML = `
+                    <div class="value">${detectedML[index]?.toFixed(0) || '0'} ml</div>
+                    <div class="label">${rect.label}</div>
+                `;
+                measureContainer.appendChild(card);
+            });
+        }
+
+        function updateTableHeaders() {
+            const count = cylinderRects.length;
+            for (let i = 1; i <= 3; i++) {
+                const th = document.getElementById(`th-cyl${i}`);
+                const thResult = document.getElementById(`th-result${i}`);
+                if (th) th.textContent = i <= count ? cylinderLabels[i-1] : '';
+                if (thResult) thResult.textContent = i <= count ? cylinderLabels[i-1] : '';
+            }
+        }
+
+        function updateMeasurementTable() {
+            const tbody = document.getElementById('measurement-rows');
+            tbody.innerHTML = '';
+            
+            measurements.slice().reverse().slice(0, 5).forEach(m => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${m.time}</td>
+                    ${m.mlValues.map(v => `<td>${v.toFixed(0)} ml</td>`).join('')}
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateResultsTable() {
+            const tbody = document.getElementById('results-rows');
+            tbody.innerHTML = '';
+            
+            measurements.forEach(m => {
+                const row = document.createElement('tr');
+                const timeStr = new Date(m.timestamp).toLocaleTimeString('de-DE');
+                row.innerHTML = `
+                    <td>${m.time}</td>
+                    ${m.mlValues.map(v => `<td>${v.toFixed(0)}</td>`).join('')}
+                    <td>${timeStr}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateStatistics() {
+            const statsGrid = document.getElementById('stats-grid');
+            statsGrid.innerHTML = '';
+            
+            cylinderLabels.forEach((label, i) => {
+                const values = measurements.map(m => m.mlValues[i]);
+                const start = values[0] || 0;
+                const end = values[values.length - 1] || 0;
+                const avg = values.reduce((a, b) => a + b, 0) / values.length;
+                const settled = start - end;
+                const rate = (settled / duration).toFixed(2);
+                
+                const card = document.createElement('div');
+                card.className = 'stat-card';
+                card.innerHTML = `
+                    <h3 class="stat-label">${label}</h3>
+                    <div class="stat-value">${start.toFixed(0)} ml</div>
+                    <div class="text-sm text-gray-500">Anfang</div>
+                    
+                    <div class="stat-value mt-2">${end.toFixed(0)} ml</div>
+                    <div class="text-sm text-gray-500">Ende</div>
+                    
+                    <div class="stat-value mt-2">${avg.toFixed(0)} ml</div>
+                    <div class="text-sm text-gray-500">Durchschnitt</div>
+                    
+                    <div class="stat-value mt-2">${settled.toFixed(0)} ml</div>
+                    <div class="text-sm text-gray-500">Abgesetzt</div>
+                    
+                    <div class="stat-value mt-2">${rate} ml/min</div>
+                    <div class="text-sm text-gray-500">Rate</div>
+                `;
+                statsGrid.appendChild(card);
+            });
+        }
+
+        // ========== EXPORT FUNCTIONS ==========
+        function exportCSV() {
+            const headers = ["Zeit (min)", ...cylinderLabels.map(l => `${l} (ml)`), "Timestamp"];
+            const rows = measurements.map(m => [
+                m.time,
+                ...m.mlValues,
+                new Date(m.timestamp).toLocaleString('de-DE')
+            ]);
+            
+            const csvContent = [
+                headers.join(","),
+                ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+            ].join("\n");
+            
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `sedimentation_ml_${new Date().toISOString().slice(0, 10)}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportPDF() {
+            const printWindow = window.open("", "_blank");
+            const html = `
+                <html>
+                    <head>
+                        <title>Sedimentations-Messung (ml)</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; margin: 20px; }
+                            h1 { color: #1e40af; }
+                            table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+                            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                            th { background-color: #f3f4f6; }
+                            tr:nth-child(even) { background-color: #f9fafb; }
+                            .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 20px 0; }
+                            .stat-card { background: #f8fafc; padding: 16px; border-radius: 8px; }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>Sedimentations-Messprotokoll (ml)</h1>
+                        <p><strong>Datum:</strong> ${new Date().toLocaleDateString('de-DE')}</p>
+                        <p><strong>Messdauer:</strong> ${duration} Minuten</p>
+                        <p><strong>Einheit:</strong> Milliliter (ml)</p>
+                        
+                        <h2>Zusammenfassung</h2>
+                        <div class="stats">
+                            ${cylinderLabels.map((label, i) => {
+                                const values = measurements.map(m => m.mlValues[i]);
+                                const start = values[0] || 0;
+                                const end = values[values.length - 1] || 0;
+                                const avg = values.reduce((a, b) => a + b, 0) / values.length;
+                                const settled = start - end;
+                                const rate = (settled / duration).toFixed(2);
+                                return `
+                                    <div class="stat-card">
+                                        <h3>${label}</h3>
+                                        <p><strong>Anfang:</strong> ${start.toFixed(0)} ml</p>
+                                        <p><strong>Ende:</strong> ${end.toFixed(0)} ml</p>
+                                        <p><strong>Durchschnitt:</strong> ${avg.toFixed(0)} ml</p>
+                                        <p><strong>Abgesetzt:</strong> ${settled.toFixed(0)} ml</p>
+                                        <p><strong>Rate:</strong> ${rate} ml/min</p>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                        
+                        <h2>Alle Messdaten</h2>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Zeit (min)</th>
+                                    ${cylinderLabels.map(l => `<th>${l} (ml)</th>`).join('')}
+                                    <th>Uhrzeit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${measurements.map(m => `
+                                    <tr>
+                                        <td>${m.time}</td>
+                                        ${m.mlValues.map(v => `<td>${v.toFixed(0)}</td>`).join('')}
+                                        <td>${new Date(m.timestamp).toLocaleTimeString('de-DE')}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </body>
+                </html>
+            `;
+            printWindow.document.write(html);
+            printWindow.document.close();
+            printWindow.print();
+        }
+    </script>
+</body>
+</html>
