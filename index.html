@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Belebtschlamm-Messapp (ml)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        body { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); min-height: 100vh; padding: 16px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .card { background: white; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; }
+        h1 { font-size: 1.5rem; font-weight: 700; color: #1e40af; text-align: center; margin-bottom: 16px; }
+        h2 { font-size: 1.25rem; font-weight: 600; color: #1e40af; margin-bottom: 16px; }
+        h3 { font-size: 1.1rem; font-weight: 600; color: #374151; margin-bottom: 12px; }
+        .btn { display: inline-block; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: 500; cursor: pointer; transition: all 0.2s; text-align: center; width: 100%; margin: 8px 0; }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-secondary { background: #e5e7eb; color: #374151; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-danger { background: #ef4444; color: white; }
+        .input-group { margin-bottom: 16px; }
+        .input-group label { display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 6px; }
+        .input-group input, .input-group select { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 16px; }
+        /* Persistent camera container gets moved between pages via JS */
+        #camera-slot { position: relative; background: black; border-radius: 12px; overflow: hidden; margin-bottom: 16px; min-height: 200px; }
+        #camera-slot video { width: 100%; display: block; }
+        #camera-slot canvas { position: absolute; top: 0; left: 0; pointer-events: none; width: 100%; height: 100%; }
+        .cylinder-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 16px; }
+        .cylinder-card { background: #f8fafc; border-radius: 8px; padding: 12px; text-align: center; }
+        .cylinder-card .value { font-size: 1.5rem; font-weight: 700; color: #1e40af; }
+        .cylinder-card .label { font-size: 14px; color: #6b7280; margin-top: 4px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        table th, table td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        table th { background: #f3f4f6; font-weight: 600; color: #374151; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 16px; }
+        .stat-card { background: #f8fafc; border-radius: 8px; padding: 16px; }
+        .stat-label { font-size: 14px; color: #6b7280; margin-bottom: 4px; }
+        .stat-value { font-size: 1.25rem; font-weight: 700; color: #1e40af; }
+        .hidden { display: none; }
+        .text-center { text-align: center; }
+        .text-sm { font-size: 14px; }
+        .text-gray-500 { color: #6b7280; }
+        .success-message { background: #d1fae5; color: #065f46; padding: 12px; border-radius: 8px; margin: 16px 0; font-size: 14px; }
+        .warn-message { background: #fef3c7; color: #92400e; padding: 12px; border-radius: 8px; margin: 16px 0; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Startseite -->
+        <div id="home-page" class="page">
+            <div class="card">
+                <h1>🔬 Belebtschlamm-Messapp (ml)</h1>
+                <p class="text-center text-gray-500 mb-4">Automatische Erkennung der Schlammspiegelhöhe in 3 Absetzzylindern</p>
+                <div class="input-group">
+                    <label>Messdauer (Minuten)</label>
+                    <input type="number" id="duration" value="30" min="1" max="120">
+                </div>
+                <div class="input-group">
+                    <label>Anzahl Zylinder (1-3)</label>
+                    <input type="number" id="cylinderCount" value="3" min="1" max="3">
+                </div>
+                <button class="btn btn-primary" onclick="startCalibration()">Kamera starten & Kalibrieren</button>
+            </div>
+            <div class="card">
+                <h3>📋 Kurzanleitung</h3>
+                <ol class="text-gray-600" style="padding-left: 18px;">
+                    <li>Kamera fest auf einem Stativ/Halter auf alle 3 Zylinder richten</li>
+                    <li>Rote Rahmen kontrollieren (ggf. zurücksetzen)</li>
+                    <li>ml-Markierungen kalibrieren (oberste/unterste Skalenlinie)</li>
+                    <li>Messung starten – Kamera bleibt für die gesamte Dauer aktiv</li>
+                    <li>Am Ende als CSV oder PDF exportieren</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Kalibrierungsseite -->
+        <div id="calibrate-page" class="page hidden">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h2>🎯 Kalibrierung</h2>
+                    <button class="btn btn-secondary" onclick="goHome()" style="width: auto; padding: 8px 16px;">Zurück</button>
+                </div>
+                <div id="calibrate-camera-mount"></div>
+                <button class="btn btn-secondary" onclick="resetCylinderFrames()">Zylinder zurücksetzen</button>
+                <div class="card" style="margin-top: 16px;">
+                    <h3>🤖 Automatische Markierungserkennung</h3>
+                    <button class="btn btn-primary" onclick="autoDetectMarkings()">Markierungen automatisch erkennen</button>
+                </div>
+                <div class="card" style="margin-top: 16px;">
+                    <h3>👆 Manuelle Kalibrierung</h3>
+                    <p class="text-sm text-gray-500 mb-2">Gib die ml-Werte für die oberste und unterste Markierung ein:</p>
+                    <div id="calibration-inputs"></div>
+                </div>
+                <button class="btn btn-success" onclick="startMeasurement()" id="start-btn" disabled>Messung starten (30 Min, minütlich)</button>
+                <button class="btn btn-danger" onclick="stopCameraAndGoHome()">Kamera stoppen</button>
+            </div>
+        </div>
+
+        <!-- Messseite -->
+        <div id="measure-page" class="page hidden">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h2>⏱️ Messung läuft</h2>
+                    <div id="current-time">0/30 min</div>
+                </div>
+                <div id="measure-camera-mount"></div>
+                <div class="cylinder-info" id="measure-ml-values"></div>
+                <button class="btn btn-primary" onclick="takeManualMeasurement()">Manuelle Zwischenmessung</button>
+                <button class="btn btn-danger" onclick="stopMeasurement()">Messung beenden</button>
+                <div class="card" style="margin-top: 16px;">
+                    <h3>📋 Letzte Messungen</h3>
+                    <table>
+                        <thead>
+                            <tr><th>Min</th><th id="th1">Zylinder 1</th><th id="th2">Zylinder 2</th><th id="th3">Zylinder 3</th></tr>
+                        </thead>
+                        <tbody id="measurement-rows"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ergebnis-Seite -->
+        <div id="results-page" class="page hidden">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h2>✅ Messung abgeschlossen</h2>
+                    <button class="btn btn-secondary" onclick="goHome()" style="width: auto; padding: 8px 16px;">Neue Messung</button>
+                </div>
+                <div class="stats-grid" id="stats-grid"></div>
+                <div class="card" style="margin-top: 16px;">
+                    <h3>📊 Alle Messdaten (ml)</h3>
+                    <table>
+                        <thead>
+                            <tr><th>Min</th><th id="rh1">Zylinder 1</th><th id="rh2">Zylinder 2</th><th id="rh3">Zylinder 3</th><th>Uhrzeit</th></tr>
+                        </thead>
+                        <tbody id="results-rows"></tbody>
+                    </table>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px;">
+                    <button class="btn btn-primary" onclick="exportCSV()">📄 CSV exportieren</button>
+                    <button class="btn btn-secondary" onclick="exportPDF()">🖨️ PDF drucken</button>
+                    <button class="btn btn-secondary" onclick="goHome()">🏠 Zurück</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ---- Zustand ----
+        let stream = null;
+        let videoElement = null;      // einziges <video>, wird zwischen Seiten verschoben
+        let overlayCanvas = null;     // einziges Overlay-Canvas
+        let overlayCtx = null;
+        let overlayRAF = null;        // requestAnimationFrame-ID, damit wir den Loop sauber stoppen können
+        let cylinderRects = [];
+        let calibrationData = [];
+        let cylinderLabels = ['Zylinder 1', 'Zylinder 2', 'Zylinder 3'];
+        let measurements = [];
+        let duration = 30;
+        let currentTime = 0;
+        let isRunning = false;
+        let timerId = null;
+        let detectionThreshold = 60;
+        let detectedML = [0, 0, 0];
+
+        // ---- Kamera-Element einmalig anlegen ----
+        function ensureCameraElements() {
+            if (videoElement) return;
+            const wrap = document.createElement('div');
+            wrap.id = 'camera-slot';
+            videoElement = document.createElement('video');
+            videoElement.id = 'video';
+            videoElement.autoplay = true;
+            videoElement.playsInline = true;
+            videoElement.muted = true;
+            overlayCanvas = document.createElement('canvas');
+            overlayCanvas.id = 'overlay-canvas';
+            wrap.appendChild(videoElement);
+            wrap.appendChild(overlayCanvas);
+            // zunächst "geparkt", wird bei Bedarf verschoben
+            document.body.appendChild(wrap);
+            wrap.style.display = 'none';
+        }
+
+        function mountCameraInto(mountId) {
+            ensureCameraElements();
+            const mount = document.getElementById(mountId);
+            const slot = document.getElementById('camera-slot');
+            mount.innerHTML = '';
+            mount.appendChild(slot);
+            slot.style.display = 'block';
+        }
+
+        // ---- Seiten wechseln ----
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            document.getElementById(pageId).classList.remove('hidden');
+        }
+
+        function goHome() {
+            stopCamera();
+            showPage('home-page');
+        }
+
+        function stopCameraAndGoHome() {
+            stopCamera();
+            showPage('home-page');
+        }
+
+        // ---- Zylinder-Konfiguration ----
+        function updateCylinderCount(count) {
+            count = Math.min(Math.max(count, 1), 3);
+            document.getElementById('cylinderCount').value = count;
+            cylinderLabels = Array.from({length: count}, (_, i) => `Zylinder ${i+1}`);
+            calibrationData = Array.from({length: count}, () => ({top: null, bottom: null}));
+            if (videoElement?.videoWidth) {
+                cylinderRects = generateCylinderGrid(videoElement.videoWidth, videoElement.videoHeight, count);
+            }
+            updateCalibrationInputs();
+            updateTableHeaders();
+        }
+
+        function resetCylinderFrames() {
+            const count = parseInt(document.getElementById('cylinderCount').value) || 3;
+            if (videoElement?.videoWidth) {
+                cylinderRects = generateCylinderGrid(videoElement.videoWidth, videoElement.videoHeight, count);
+            }
+            calibrationData = Array.from({length: count}, () => ({top: null, bottom: null}));
+            updateCalibrationInputs();
+            checkAllCalibrated();
+        }
+
+        // ---- Kamera starten/stoppen ----
+        async function startCamera() {
+            try {
+                if (stream) stream.getTracks().forEach(t => t.stop());
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment', width: {ideal: 1280}, height: {ideal: 720} },
+                    audio: false
+                });
+                ensureCameraElements();
+                videoElement.srcObject = stream;
+                await videoElement.play().catch(() => {}); // iOS Safari: play() explizit anstoßen
+                videoElement.onloadedmetadata = () => {
+                    const count = parseInt(document.getElementById('cylinderCount').value) || 3;
+                    cylinderRects = generateCylinderGrid(videoElement.videoWidth, videoElement.videoHeight, count);
+                    calibrationData = Array.from({length: count}, () => ({top: null, bottom: null}));
+                    updateCalibrationInputs();
+                    startOverlayLoop();
+                };
+                return true;
+            } catch (error) {
+                alert('Kamera-Zugriff fehlgeschlagen. Bitte erlauben Sie den Kamera-Zugriff in den iOS-Einstellungen für Safari.');
+                return false;
+            }
+        }
+
+        function stopCamera() {
+            stopOverlayLoop();
+            if (stream) stream.getTracks().forEach(t => t.stop());
+            stream = null;
+            if (timerId) clearInterval(timerId);
+            timerId = null;
+            isRunning = false;
+        }
+
+        function startOverlayLoop() {
+            stopOverlayLoop();
+            const loop = () => {
+                drawOverlay();
+                overlayRAF = requestAnimationFrame(loop);
+            };
+            overlayRAF = requestAnimationFrame(loop);
+        }
+
+        function stopOverlayLoop() {
+            if (overlayRAF) {
+                cancelAnimationFrame(overlayRAF);
+                overlayRAF = null;
+            }
+        }
+
+        // ---- Zylinder-Rahmen generieren ----
+        function generateCylinderGrid(width, height, count) {
+            const padding = 15;
+            const cylinderWidth = (width - padding * 2) / count;
+            const cylinderHeight = height - padding * 2;
+            return Array.from({length: count}, (_, i) => ({
+                x: padding + i * cylinderWidth,
+                y: padding,
+                width: cylinderWidth - 5,
+                height: cylinderHeight - 5,
+                label: cylinderLabels[i]
+            }));
+        }
+
+        // ---- Überlagerung zeichnen (läuft für Kalibrierung UND Messung, da nur ein Video/Canvas existiert) ----
+        function drawOverlay() {
+            if (!videoElement?.videoWidth || !overlayCanvas) return;
+            overlayCanvas.width = videoElement.videoWidth;
+            overlayCanvas.height = videoElement.videoHeight;
+            overlayCtx = overlayCanvas.getContext('2d');
+            overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+            cylinderRects.forEach((rect, i) => {
+                overlayCtx.strokeStyle = '#ef4444';
+                overlayCtx.lineWidth = 2;
+                overlayCtx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+
+                const label = `${rect.label}: ${detectedML[i]?.toFixed(0) || '0'} ml`;
+                overlayCtx.fillStyle = '#ffffff';
+                overlayCtx.font = '16px Arial';
+                const textWidth = overlayCtx.measureText(label).width;
+                overlayCtx.fillRect(rect.x, rect.y - 20, textWidth + 10, 20);
+                overlayCtx.fillStyle = '#000000';
+                overlayCtx.fillText(label, rect.x + 5, rect.y - 5);
+
+                if (calibrationData[i]?.top && calibrationData[i]?.bottom && detectedML[i] > 0) {
+                    const {top, bottom, ml: topML} = calibrationData[i].top;
+                    const bottomML = calibrationData[i].bottom.ml;
+                    const denom = (bottomML - calibrationData[i].top.ml);
+                    if (denom !== 0) {
+                        const ratio = (detectedML[i] - calibrationData[i].top.ml) / denom;
+                        const fillY = calibrationData[i].top.y + ratio * (calibrationData[i].bottom.y - calibrationData[i].top.y);
+                        overlayCtx.strokeStyle = '#10b981';
+                        overlayCtx.lineWidth = 3;
+                        overlayCtx.beginPath();
+                        overlayCtx.moveTo(rect.x, fillY);
+                        overlayCtx.lineTo(rect.x + rect.width, fillY);
+                        overlayCtx.stroke();
+                        overlayCtx.fillStyle = 'rgba(16, 185, 129, 0.3)';
+                        overlayCtx.fillRect(rect.x, fillY, rect.width, calibrationData[i].bottom.y - fillY);
+                    }
+                }
+            });
+        }
+
+        // ---- Markierungen erkennen ----
+        function detectHorizontalLines(imageData, rect, threshold = 60) {
+            const {data, width} = imageData;
+            const {x, y, width: rectW, height: rectH} = rect;
+            const lines = [];
+
+            for (let row = y + 5; row < y + rectH - 5; row++) {
+                let lineStart = -1, inLine = false;
+                for (let col = x; col < x + rectW; col++) {
+                    const idx = (row * width + col) * 4;
+                    if (idx + 3 >= data.length) continue;
+                    const brightness = (data[idx] + data[idx+1] + data[idx+2]) / 3;
+                    if (brightness < threshold && !inLine) {
+                        lineStart = col;
+                        inLine = true;
+                    } else if (brightness >= threshold && inLine) {
+                        if (col - lineStart >= 15) lines.push({y: row, x: lineStart, length: col - lineStart});
+                        inLine = false;
+                    }
+                }
+                if (inLine && lineStart !== -1) {
+                    lines.push({y: row, x: lineStart, length: rectW - (lineStart - x)});
+                }
+            }
+
+            lines.sort((a, b) => a.y - b.y);
+            const filtered = [];
+            for (let i = 0; i < lines.length; i++) {
+                if (i === 0 || lines[i].y - lines[i-1].y > 8) filtered.push(lines[i]);
+            }
+            return filtered;
+        }
+
+        // ---- Schlammspiegel erkennen ----
+        function detectSludgeLevel() {
+            if (!videoElement?.videoWidth) return cylinderRects.map(() => 0);
+            const canvas = document.createElement('canvas');
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(videoElement, 0, 0);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const results = [];
+
+            cylinderRects.forEach((rect, i) => {
+                const cal = calibrationData[i];
+                if (!cal?.top || !cal?.bottom) {
+                    const lines = detectHorizontalLines(imageData, rect, detectionThreshold);
+                    results.push(lines.length > 0 ? 100 - ((lines[lines.length-1].y - rect.y) / rect.height * 100) : 0);
+                } else {
+                    let sludgeY = rect.y + rect.height;
+                    const colStep = Math.max(1, Math.floor(rect.width / 8));
+                    for (let row = cal.top.y; row < cal.bottom.y; row++) {
+                        let darkCount = 0, lightCount = 0;
+                        for (let col = rect.x; col < rect.x + rect.width; col += colStep) {
+                            const idx = (row * imageData.width + col) * 4;
+                            if (idx + 3 >= imageData.data.length) continue;
+                            const brightness = (imageData.data[idx] + imageData.data[idx+1] + imageData.data[idx+2]) / 3;
+                            if (brightness < 80) darkCount++; else lightCount++;
+                        }
+                        // Übergang zählt nur, wenn mehrheitlich dunkel (robuster gegen Einzelpixel-Rauschen)
+                        if (darkCount >= lightCount && darkCount > 0) { sludgeY = row; break; }
+                    }
+                    const denom = (cal.bottom.y - cal.top.y);
+                    const ratio = denom !== 0 ? (sludgeY - cal.top.y) / denom : 0;
+                    results.push(cal.top.ml + (cal.bottom.ml - cal.top.ml) * ratio);
+                }
+            });
+            return results;
+        }
+
+        // ---- Kalibrierung ----
+        function autoDetectMarkings() {
+            if (!videoElement?.videoWidth) { alert('Starte zuerst die Kamera!'); return; }
+            const rect = cylinderRects[0];
+            const canvas = document.createElement('canvas');
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(videoElement, 0, 0);
+            const imageData = ctx.getImageData(rect.x, rect.y, rect.width, rect.height);
+            const lines = detectHorizontalLines({data: imageData.data, width: rect.width, height: rect.height}, {x:0,y:0,width:rect.width,height:rect.height}, detectionThreshold);
+
+            if (lines.length >= 2) {
+                const topML = prompt(`Oberste Markierung (Y=${lines[0].y}): ml-Wert?`, "1000");
+                if (topML === null) return;
+                const bottomML = prompt(`Unterste Markierung (Y=${lines[lines.length-1].y}): ml-Wert?`, "0");
+                if (bottomML === null) return;
+                if (parseFloat(topML) === parseFloat(bottomML)) {
+                    alert('Ober- und Unterwert dürfen nicht gleich sein.');
+                    return;
+                }
+
+                cylinderRects.forEach((r, i) => {
+                    calibrationData[i] = {
+                        top: {x: r.x + r.width/2, y: r.y + lines[0].y, ml: parseFloat(topML)},
+                        bottom: {x: r.x + r.width/2, y: r.y + lines[lines.length-1].y, ml: parseFloat(bottomML)}
+                    };
+                });
+                updateCalibrationInputs();
+                checkAllCalibrated();
+            } else {
+                alert('Nicht genug Markierungen erkannt. Bitte manuell kalibrieren (Positionen setzen).');
+            }
+        }
+
+        function updateCalibrationInputs() {
+            const container = document.getElementById('calibration-inputs');
+            container.innerHTML = '';
+            cylinderRects.forEach((rect, i) => {
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <h4 style="margin: 8px 0;">${rect.label}</h4>
+                    <div style="margin-bottom: 8px;">
+                        <label class="text-sm text-gray-500">Oberste Markierung (ml)</label>
+                        <input type="number" class="cal-top" data-i="${i}" value="${calibrationData[i]?.top?.ml ?? ''}"
+                               style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <label class="text-sm text-gray-500">Unterste Markierung (ml)</label>
+                        <input type="number" class="cal-bottom" data-i="${i}" value="${calibrationData[i]?.bottom?.ml ?? ''}"
+                               style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">
+                    </div>
+                    <button class="btn btn-success" onclick="setCalibrationPositions(${i})" style="margin-top: 8px;">Positionen setzen</button>
+                    ${calibrationData[i]?.top && calibrationData[i]?.bottom ?
+                        `<div class="success-message" style="margin-top: 8px;">✅ Kalibriert: ${calibrationData[i].top.ml} ml – ${calibrationData[i].bottom.ml} ml</div>` : ''}
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function setCalibrationPositions(i) {
+            const rect = cylinderRects[i];
+            const topML = parseFloat(document.querySelector(`.cal-top[data-i="${i}"]`).value);
+            const bottomML = parseFloat(document.querySelector(`.cal-bottom[data-i="${i}"]`).value);
+            if (isNaN(topML) || isNaN(bottomML)) { alert('Bitte beide ml-Werte eintragen.'); return; }
+            if (topML === bottomML) { alert('Ober- und Unterwert dürfen nicht gleich sein.'); return; }
+            calibrationData[i] = {
+                top: {x: rect.x + rect.width/2, y: rect.y + 20, ml: topML},
+                bottom: {x: rect.x + rect.width/2, y: rect.y + rect.height - 20, ml: bottomML}
+            };
+            updateCalibrationInputs();
+            checkAllCalibrated();
+        }
+
+        function checkAllCalibrated() {
+            const allCalibrated = calibrationData.length > 0 && calibrationData.every(cal => cal.top && cal.bottom);
+            document.getElementById('start-btn').disabled = !allCalibrated;
+        }
+
+        // ---- Messablauf ----
+        function startCalibration() {
+            duration = parseInt(document.getElementById('duration').value) || 30;
+            updateCylinderCount(parseInt(document.getElementById('cylinderCount').value) || 3);
+            startCamera().then(success => {
+                if (success) {
+                    showPage('calibrate-page');
+                    mountCameraInto('calibrate-camera-mount');
+                    updateCalibrationInputs();
+                    checkAllCalibrated();
+                }
+            });
+        }
+
+        function startMeasurement() {
+            duration = parseInt(document.getElementById('duration').value) || 30;
+            currentTime = 0;
+            measurements = [];
+            isRunning = true;
+
+            showPage('measure-page');
+            mountCameraInto('measure-camera-mount');
+            document.getElementById('current-time').textContent = `0/${duration} min`;
+
+            testDetection();
+            addMeasurement(detectedML);
+
+            timerId = setInterval(() => {
+                currentTime++;
+                testDetection();
+                addMeasurement(detectedML);
+                document.getElementById('current-time').textContent = `${currentTime}/${duration} min`;
+                if (currentTime >= duration) stopMeasurement();
+            }, 60000); // jede Minute
+        }
+
+        function testDetection() {
+            if (!videoElement?.videoWidth) return;
+            detectedML = detectSludgeLevel();
+            updateCurrentMLValues();
+        }
+
+        function addMeasurement(mlValues) {
+            measurements.push({
+                time: currentTime,
+                mlValues: [...mlValues],
+                timestamp: new Date().toISOString()
+            });
+            updateMeasurementTable();
+        }
+
+        function stopMeasurement() {
+            stopCamera();
+            showPage('results-page');
+            updateResultsTable();
+            updateStatistics();
+        }
+
+        function takeManualMeasurement() {
+            testDetection();
+            addMeasurement(detectedML);
+        }
+
+        // ---- UI-Updates ----
+        function updateCurrentMLValues() {
+            const container = document.getElementById('measure-ml-values');
+            if (!container) return;
+            container.innerHTML = '';
+            cylinderRects.forEach((rect, i) => {
+                const card = document.createElement('div');
+                card.className = 'cylinder-card';
+                card.innerHTML = `<div class="value">${detectedML[i]?.toFixed(0) || '0'} ml</div><div class="label">${rect.label}</div>`;
+                container.appendChild(card);
+            });
+        }
+
+        function updateTableHeaders() {
+            [1,2,3].forEach(i => {
+                const th = document.getElementById(`th${i}`);
+                const rh = document.getElementById(`rh${i}`);
+                if (th) th.textContent = i <= cylinderRects.length ? cylinderLabels[i-1] : '';
+                if (rh) rh.textContent = i <= cylinderRects.length ? cylinderLabels[i-1] : '';
+            });
+        }
+
+        function updateMeasurementTable() {
+            const tbody = document.getElementById('measurement-rows');
+            tbody.innerHTML = '';
+            measurements.slice().reverse().slice(0, 6).forEach(m => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${m.time}</td>${m.mlValues.map(v => `<td>${v.toFixed(0)} ml</td>`).join('')}`;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateResultsTable() {
+            const tbody = document.getElementById('results-rows');
+            tbody.innerHTML = '';
+            measurements.forEach(m => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${m.time}</td>${m.mlValues.map(v => `<td>${v.toFixed(0)}</td>`).join('')}<td>${new Date(m.timestamp).toLocaleTimeString('de-DE')}</td>`;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateStatistics() {
+            const statsGrid = document.getElementById('stats-grid');
+            statsGrid.innerHTML = '';
+            cylinderLabels.forEach((label, i) => {
+                const values = measurements.map(m => m.mlValues[i]);
+                const start = values[0] || 0;
+                const end = values[values.length-1] || 0;
+                const settled = start - end;
+                const rate = (settled/duration).toFixed(2);
+
+                const card = document.createElement('div');
+                card.className = 'stat-card';
+                card.innerHTML = `
+                    <div class="stat-label">${label}</div>
+                    <div class="stat-value">${start.toFixed(0)} ml</div><div class="text-sm text-gray-500">Anfang</div>
+                    <div class="stat-value" style="margin-top: 8px;">${end.toFixed(0)} ml</div><div class="text-sm text-gray-500">Ende</div>
+                    <div class="stat-value" style="margin-top: 8px;">${settled.toFixed(0)} ml</div><div class="text-sm text-gray-500">Abgesetzt</div>
+                    <div class="stat-value" style="margin-top: 8px;">${rate} ml/min</div><div class="text-sm text-gray-500">Rate</div>
+                `;
+                statsGrid.appendChild(card);
+            });
+        }
+
+        // ---- Export ----
+        function exportCSV() {
+            const headers = ["Zeit (min)", ...cylinderLabels.map(l => `${l} (ml)`), "Timestamp"];
+            const rows = measurements.map(m => [m.time, ...m.mlValues.map(v => v.toFixed(0)), new Date(m.timestamp).toLocaleString('de-DE')]);
+            const csv = [headers.join(","), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n");
+            const blob = new Blob([csv], {type: "text/csv;charset=utf-8;"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `belebtschlamm_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function exportPDF() {
+            const win = window.open("", "_blank");
+            const html = `
+                <html><head><title>Sedimentations-Messung</title>
+                <style>body{font-family:Arial;margin:20px}h1{color:#1e40af}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background:#f3f4f6}</style>
+                </head><body>
+                <h1>Belebtschlamm Sedimentations-Messprotokoll (ml)</h1>
+                <p><strong>Datum:</strong> ${new Date().toLocaleDateString('de-DE')}</p>
+                <p><strong>Messdauer:</strong> ${duration} Minuten</p>
+                <h2>Zusammenfassung</h2>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;">
+                    ${cylinderLabels.map((l,i) => {
+                        const vals = measurements.map(m => m.mlValues[i]);
+                        const start = vals[0] || 0;
+                        const end = vals[vals.length-1] || 0;
+                        const avg = vals.reduce((a,b)=>a+b,0)/(vals.length||1);
+                        const settled = start - end;
+                        const rate = (settled/duration).toFixed(2);
+                        return `<div style="background:#f8fafc;padding:16px;border-radius:8px;">
+                            <h3>${l}</h3>
+                            <p><strong>Anfang:</strong> ${start.toFixed(0)} ml</p>
+                            <p><strong>Ende:</strong> ${end.toFixed(0)} ml</p>
+                            <p><strong>Durchschnitt:</strong> ${avg.toFixed(0)} ml</p>
+                            <p><strong>Abgesetzt:</strong> ${settled.toFixed(0)} ml</p>
+                            <p><strong>Rate:</strong> ${rate} ml/min</p>
+                        </div>`;
+                    }).join('')}
+                </div>
+                <h2>Alle Messdaten</h2>
+                <table>
+                    <thead><tr><th>Zeit (min)</th>${cylinderLabels.map(l=>`<th>${l} (ml)</th>`).join('')}<th>Uhrzeit</th></tr></thead>
+                    <tbody>${measurements.map(m=>`
+                        <tr>
+                            <td>${m.time}</td>
+                            ${m.mlValues.map(v=>`<td>${v.toFixed(0)}</td>`).join('')}
+                            <td>${new Date(m.timestamp).toLocaleTimeString('de-DE')}</td>
+                        </tr>
+                    `).join('')}</tbody>
+                </table>
+                </body></html>
+            `;
+            win.document.write(html);
+            win.document.close();
+            win.print();
+        }
+    </script>
+</body>
+</html>
